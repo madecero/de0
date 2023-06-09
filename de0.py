@@ -9,7 +9,7 @@ import openai
 import os
 
 #Change to a local directory
-os.chdir(r'<INSERT HERE>')
+os.chdir(r'C:\Users\madec\Documents\de0project\openAI')
 
 #get openAI key
 with open("key.txt", "r") as credsfile:
@@ -42,6 +42,8 @@ def main():
             
             # Get user input
             user_input = input("You: ")
+            if user_input.lower() == "end":
+                break
     
             # Generate a response from the GPT-3 model
             messages = [
@@ -64,8 +66,6 @@ def main():
             with open("chat_history.txt", "a") as historyfile:
                 historyfile.write(conversation_history)
             historyfile.close()
-            
-            print(messages)
         
         except KeyboardInterrupt:
             break
