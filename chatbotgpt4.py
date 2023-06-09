@@ -9,7 +9,7 @@ import openai
 import os
 
 #Change to a local directory
-os.chdir(r'<INSERT HERE')
+os.chdir(r'<INSERT HERE>')
 
 #get openAI key
 with open("key.txt", "r") as credsfile:
