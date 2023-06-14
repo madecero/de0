@@ -9,7 +9,7 @@ import openai
 import os
 
 #Change to a local directory
-os.chdir(r'C:\Users\madec\Documents\de0project\openAI')
+os.chdir(r'<INSERT PATH>')
 
 #get openAI key
 with open("key.txt", "r") as credsfile:
