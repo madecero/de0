@@ -9,8 +9,10 @@ version = 'v0.0.1'
 
 import json
 import os
+import uuid
 import openai
 import pinecone
+import tiktoken
 from datetime import datetime
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import ConversationChain
@@ -36,10 +38,11 @@ os.chdir(r'C:\Users\madec\Documents\de0project\openAI')
 user_name = 'Mike'
 system_name = 'de0'
 
-#set llm, index, and initial messages
+#set llm, index, encoding (for tokenization) and initial messages
 chat_model = 'gpt-3.5-turbo'
 embed_model = 'text-embedding-ada-002'
 index_name = 'de0'
+encoding = tiktoken.get_encoding("cl100k_base")
 session_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 system_message = "Your name is " + str(system_name) + " and you are " + str(user_name) + "'s personal assistant. This conversation started at " + session_start
 
@@ -98,11 +101,14 @@ def main():
     conversation(system_message)
     
     #start memory session
-    memory_start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    memory = {session_start: {memory_start_time: {'system' : system_message}}}
     memory_path = session_start + ".json"
+    conversation_uuid = str(uuid.uuid4())
+    conversation_history = {
+        "id": conversation_uuid,
+        "messages": []
+        }
     
-    print ("de0: What can I do for you today? ")
+    print (system_name + ": What can I do for you today? ")
     print ('\n')
     
     # Start the conversation loop
@@ -110,30 +116,60 @@ def main():
         try:
                         
             # Get user input
-            user_input = input("You: ")
+            user_input = input(user_name + ": ")
+            
             if user_input.lower() == "end":
                 break
             
             #record time we have an interaction
-            interaction_moment = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            query_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             
             # Generate a response from the GPT-3 model
             response = chat(conversation, user_input)
+            response_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             print ('\n')
-            print ('de0: ' + str(response))
+            print (system_name + ": " + str(response))
             print ('\n')
             
-            #store the query and response in memory dictionary
-            memory[session_start][interaction_moment] = {user_name: user_input, system_name: response}
+            #store the query and response in conversation_history 
+            conversation_history["messages"].append(
+                {
+                "timestamp": query_timestamp,
+                "role": user_name,
+                "text": user_input
+                }
+                )
             
-            #print to memory file
-            os.chdir(r'C:\Users\madec\Documents\de0project\openAI\memory_log')
-            with open(memory_path, 'a') as json_file:
-                json.dump(memory, json_file)
-            os.chdir(r'C:\Users\madec\Documents\de0project\openAI')
+            conversation_history["messages"].append(
+                {
+                "timestamp": response_timestamp,
+                "role": system_name,
+                "text": str(response)
+                }
+                )
         
         except KeyboardInterrupt:
             break
+        
+    #tokenize the conversation_history and print it to a json file in a sub-directory  
+    os.chdir(r'C:\Users\madec\Documents\de0project\openAI\memory_log')
+    
+    vector_upsert = {
+        "id": conversation_uuid,
+        "vector": []
+        }
+    
+    with open(memory_path, 'a') as memory_file:
+        for message in conversation_history["messages"]:
+            text = message["text"]
+            tokens = encoding.encode(text)
+            vector_upsert["vector"].append(tokens)
+            
+        json.dump(vector_upsert, memory_file)
+    
+    memory_file.close()
+    
+    os.chdir(r'C:\Users\madec\Documents\de0project\openAI')
 
 if __name__ == '__main__':
     main()
