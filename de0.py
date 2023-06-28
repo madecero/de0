@@ -13,6 +13,8 @@ import uuid
 import openai
 import pinecone
 import tiktoken
+import spacy
+import numpy as np
 from datetime import datetime
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import ConversationChain
@@ -38,11 +40,12 @@ os.chdir(r'C:\Users\madec\Documents\de0project\openAI')
 user_name = 'Mike'
 system_name = 'de0'
 
-#set llm, index, encoding (for tokenization) and initial messages
+#set llm, index, encoding (for tokenization), nlp model, and initial messages
 chat_model = 'gpt-3.5-turbo'
 embed_model = 'text-embedding-ada-002'
 index_name = 'de0'
 encoding = tiktoken.get_encoding("cl100k_base")
+nlp = spacy.load("en_core_web_lg")
 session_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 system_message = "Your name is " + str(system_name) + " and you are " + str(user_name) + "'s personal assistant. This conversation started at " + session_start
 
@@ -101,7 +104,6 @@ def main():
     conversation(system_message)
     
     #start memory session
-    memory_path = session_start + ".json"
     conversation_uuid = str(uuid.uuid4())
     conversation_history = {
         "id": conversation_uuid,
@@ -151,25 +153,43 @@ def main():
         except KeyboardInterrupt:
             break
         
-    #tokenize the conversation_history and print it to a json file in a sub-directory  
-    os.chdir(r'C:\Users\madec\Documents\de0project\openAI\memory_log')
+    #tokenize the conversation_history, transform vectors to consistent dimensionality, and upsert to pinecone index
+    vectors = []
     
-    vector_upsert = {
-        "id": conversation_uuid,
-        "vector": []
-        }
+    for message in conversation_history["messages"]:
+        
+        #tokenize the text of the conversation
+        #text = message["text"]
+        #tokens = encoding.encode(text)
+        #tokens_float = list(map(float, tokens))
+        
+        #convert vector to a spaCy Doc object
+        text = message["text"]
+        doc = nlp(text)
+        
+        #extract the word vector for each token in the Doc object
+        word_vectors = [token.vector for token in doc]
+        
+        #average the word vectors to get a single vector representation
+        averaged_vector = np.mean(word_vectors, axis = 0)
+        
+        #pad or truncate the averaged vector to dimensionality 768
+        if len(averaged_vector) < 768:
+            normalized_vector = np.pad(averaged_vector, (0, 768 - len(averaged_vector)))
+            normalized_vector = np.ndarray.tolist(normalized_vector)
+        else:
+            normalized_vector = averaged_vector[:768]
+            normalized_vector = np.ndarray.tolist(normalized_vector)
+        
+        #append normalized vectors + an id to a list of dictionaries in order to upsert to pinecone
+        vectors.append(
+            {
+            "id": message["timestamp"],
+            "values": normalized_vector
+            }
+            )
     
-    with open(memory_path, 'a') as memory_file:
-        for message in conversation_history["messages"]:
-            text = message["text"]
-            tokens = encoding.encode(text)
-            vector_upsert["vector"].append(tokens)
-            
-        json.dump(vector_upsert, memory_file)
-    
-    memory_file.close()
-    
-    os.chdir(r'C:\Users\madec\Documents\de0project\openAI')
+    index.upsert(vectors=vectors)
 
 if __name__ == '__main__':
     main()
