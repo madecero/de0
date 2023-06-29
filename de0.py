@@ -12,7 +12,6 @@ import os
 import uuid
 import openai
 import pinecone
-import tiktoken
 import spacy
 import numpy as np
 from datetime import datetime
@@ -44,9 +43,10 @@ system_name = 'de0'
 chat_model = 'gpt-3.5-turbo'
 embed_model = 'text-embedding-ada-002'
 index_name = 'de0'
-encoding = tiktoken.get_encoding("cl100k_base")
 nlp = spacy.load("en_core_web_lg")
 session_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+dimensions = 1024
+temperature = 0.0
 system_message = "Your name is " + str(system_name) + " and you are " + str(user_name) + "'s personal assistant. This conversation started at " + session_start
 
 print ("Welcome to your personal assistant, " + system_name + ' ' + version)
@@ -75,14 +75,14 @@ pinecone.init(api_key=pp_key, environment=pp_env)
 embed = OpenAIEmbeddings(
     openai_api_key=openai.api_key
 )
-embed_dimension = 768
+embed_dimension = dimensions
 
 #connect to index
 index = pinecone.Index(index_name)
 
 #initialize llm
 llm = ChatOpenAI(
-    temperature = 0,
+    temperature = temperature,
     openai_api_key = openai.api_key,
     model_name = chat_model
     )
@@ -94,8 +94,14 @@ conversation = ConversationChain(
     memory = ConversationSummaryMemory(llm = llm))
 
 def chat(chain, query):
+    'Function to have interactive chat with bot'
     response = chain.run(query)
     return response
+
+def search_memory(vector_call):
+    'Function to call long term memory in pinecone'
+    res = index.query(vector_call, top_k = 1, include_metadata=True)
+    return res
 
 # Define the main function to interact with the user
 def main():
@@ -125,6 +131,21 @@ def main():
             
             #record time we have an interaction
             query_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            
+            #convert user input to a spaCy Doc object and vectorize it to query pinceone long term membory vectors
+            doc = nlp(user_input)
+            word_vectors = [token.vector for token in doc]
+            averaged_vector = np.mean(word_vectors, axis = 0)
+            
+            if len(averaged_vector) < dimensions:
+                normalized_vector = np.pad(averaged_vector, (0, dimensions - len(averaged_vector)))
+                normalized_vector = np.ndarray.tolist(normalized_vector)
+            else:
+                normalized_vector = averaged_vector[:dimensions]
+                normalized_vector = np.ndarray.tolist(normalized_vector)
+            
+            v_call = search_memory(normalized_vector)
+            conversation(v_call['matches'][0]['metadata']['text'])
             
             # Generate a response from the GPT-3 model
             response = chat(conversation, user_input)
@@ -156,40 +177,36 @@ def main():
     #tokenize the conversation_history, transform vectors to consistent dimensionality, and upsert to pinecone index
     vectors = []
     
-    for message in conversation_history["messages"]:
+    #convert conversation_summary to spaCy Doc object
+    text = conversation.memory.buffer
+    doc = nlp(text)
         
-        #tokenize the text of the conversation
-        #text = message["text"]
-        #tokens = encoding.encode(text)
-        #tokens_float = list(map(float, tokens))
-        
-        #convert vector to a spaCy Doc object
-        text = message["text"]
-        doc = nlp(text)
-        
-        #extract the word vector for each token in the Doc object
-        word_vectors = [token.vector for token in doc]
-        
-        #average the word vectors to get a single vector representation
-        averaged_vector = np.mean(word_vectors, axis = 0)
-        
-        #pad or truncate the averaged vector to dimensionality 768
-        if len(averaged_vector) < 768:
-            normalized_vector = np.pad(averaged_vector, (0, 768 - len(averaged_vector)))
-            normalized_vector = np.ndarray.tolist(normalized_vector)
-        else:
-            normalized_vector = averaged_vector[:768]
-            normalized_vector = np.ndarray.tolist(normalized_vector)
-        
-        #append normalized vectors + an id to a list of dictionaries in order to upsert to pinecone
-        vectors.append(
-            {
-            "id": message["timestamp"],
-            "values": normalized_vector
-            }
-            )
+    #extract the word vector for each token in the Doc object
+    word_vectors = [token.vector for token in doc]
     
-    index.upsert(vectors=vectors)
+    #average the word vectors to get a single vector representation
+    averaged_vector = np.mean(word_vectors, axis = 0)
+    
+    #pad or truncate the averaged vector to dimensionality 768
+    if len(averaged_vector) < dimensions:
+        normalized_vector = np.pad(averaged_vector, (0, dimensions - len(averaged_vector)))
+        normalized_vector = np.ndarray.tolist(normalized_vector)
+    else:
+        normalized_vector = averaged_vector[:dimensions]
+        normalized_vector = np.ndarray.tolist(normalized_vector)
+    
+    #append normalized vectors + an id to a list of dictionaries in order to upsert to pinecone
+    vectors.append(
+        {
+        "id": session_start,
+        "values": normalized_vector,
+        "metadata": {
+            "text": text
+            }
+        }
+        )
+    
+    #index.upsert(vectors=vectors)
 
 if __name__ == '__main__':
     main()
