@@ -55,19 +55,15 @@ print ('\n')
 
 #connect to apis
 
-#get openAI key
-with open("oaikey.txt", "r") as credsfile:
-    openai.api_key = credsfile.read().strip()
-credsfile.close()
+#get openAI key, Pinecone key, and Pinecone Environment
+with open("api_keys.txt", "r") as api_keys:
+    keys = json.load(api_keys)
+    openai.api_key = keys["open_ai_key"]
+    pinecone_key = keys["pinecone_key"]
+    pinecone_env = keys["pinecone_env"]
+api_keys.close()
 
-#connect to Pinecone
-with open("pineconekey.txt", "r") as credsfile:
-    creds = json.load(credsfile)
-    pp_key = creds["key"]
-    pp_env = creds["env"]
-credsfile.close()
-
-pinecone.init(api_key=pp_key, environment=pp_env)
+pinecone.init(api_key=pinecone_key, environment=pinecone_env)
 
 #connect to index
 index = pinecone.Index(index_name)
@@ -90,9 +86,9 @@ def chat(chain, query):
     response = chain.run(query)
     return response
 
-def search_memory(vector_call):
-    'Function to call long term memory in pinecone'
-    res = index.query(vector_call, top_k = 1, include_metadata=True)
+def search_memory(prompt):
+    'Function to call similarity search in pinecone'
+    res = index.query(prompt, top_k = 1, include_metadata=True)
     return res
 
 # Define the main function to interact with the user
