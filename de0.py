@@ -81,21 +81,36 @@ conversation = ConversationChain(
     llm = llm,
     memory = ConversationSummaryMemory(llm = llm))
 
+
+def search_memory(prompt):
+    'Function to call similarity search in pinecone'
+    
+    #convert user input to a spaCy Doc object and vectorize it to query pinceone membory vectors
+    doc = nlp(prompt)
+    word_vectors = [token.vector for token in doc]
+    averaged_vector = np.mean(word_vectors, axis = 0)
+    
+    if len(averaged_vector) < dimensions:
+        normalized_vector = np.pad(averaged_vector, (0, dimensions - len(averaged_vector)))
+        normalized_vector = np.ndarray.tolist(normalized_vector)
+    else:
+        normalized_vector = averaged_vector[:dimensions]
+        normalized_vector = np.ndarray.tolist(normalized_vector)
+        
+    query_response = index.query(normalized_vector, top_k = 1, include_metadata=True)
+    
+    if query_response == None:
+        conversation(system_message)
+    else:
+        conversation(query_response['matches'][0]['metadata']['text'])
+
 def chat(chain, query):
     'Function to have interactive chat with bot'
     response = chain.run(query)
     return response
 
-def search_memory(prompt):
-    'Function to call similarity search in pinecone'
-    res = index.query(prompt, top_k = 1, include_metadata=True)
-    return res
-
 # Define the main function to interact with the user
 def main():
-    
-    # system initiation
-    conversation(system_message)
     
     #start memory session
     conversation_uuid = str(uuid.uuid4())
@@ -120,21 +135,8 @@ def main():
             #record time we have an interaction
             query_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             
-            #convert user input to a spaCy Doc object and vectorize it to query pinceone long term membory vectors
-            doc = nlp(user_input)
-            word_vectors = [token.vector for token in doc]
-            averaged_vector = np.mean(word_vectors, axis = 0)
-            
-            if len(averaged_vector) < dimensions:
-                normalized_vector = np.pad(averaged_vector, (0, dimensions - len(averaged_vector)))
-                normalized_vector = np.ndarray.tolist(normalized_vector)
-            else:
-                normalized_vector = averaged_vector[:dimensions]
-                normalized_vector = np.ndarray.tolist(normalized_vector)
-            
-            v_call = search_memory(normalized_vector)
-            print (v_call)
-            conversation(v_call['matches'][0]['metadata']['text'])
+            #query vector store for similar past conversations and add response as context
+            search_memory(user_input)
             
             # Generate a response from the GPT-3 model
             response = chat(conversation, user_input)
