@@ -8,7 +8,6 @@ Created on Fri Apr  7 14:40:29 2023
 version = 'v0.0.1'
 
 import json
-import os
 import openai
 import pinecone
 import spacy
@@ -29,9 +28,6 @@ print (' 11111    11111    00000   ')
 print ('\n')
 
 print ('---------------------------------------------------------------------')
-
-#Change to a local directory
-os.chdir(r'C:\Users\madec\Documents\de0project\openAI')
 
 # Bueller?!
 user_name = 'Mike'
@@ -134,8 +130,7 @@ def upsert_to_memory(conversation_history):
         }
         )
     
-    print(vectors)
-    #index.upsert(vectors=vectors)
+    index.upsert(vectors=vectors)
 
 # Define the main function to interact with the user
 def main():
