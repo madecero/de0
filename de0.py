@@ -18,7 +18,6 @@ from datetime import datetime
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import ConversationChain
 from langchain.chains.conversation.memory import ConversationSummaryMemory
-from langchain.embeddings.openai import OpenAIEmbeddings
 
 print ('\n')
 print ('     1             00000   ')
@@ -39,9 +38,8 @@ os.chdir(r'C:\Users\madec\Documents\de0project\openAI')
 user_name = 'Mike'
 system_name = 'de0'
 
-#set llm, index, encoding (for tokenization), nlp model, and initial messages
+#set llm, index, nlp model, and initial messages
 chat_model = 'gpt-3.5-turbo'
-embed_model = 'text-embedding-ada-002'
 index_name = 'de0'
 nlp = spacy.load("en_core_web_lg")
 session_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -70,12 +68,6 @@ with open("pineconekey.txt", "r") as credsfile:
 credsfile.close()
 
 pinecone.init(api_key=pp_key, environment=pp_env)
-
-#initialize embedding model
-embed = OpenAIEmbeddings(
-    openai_api_key=openai.api_key
-)
-embed_dimension = dimensions
 
 #connect to index
 index = pinecone.Index(index_name)
@@ -145,6 +137,7 @@ def main():
                 normalized_vector = np.ndarray.tolist(normalized_vector)
             
             v_call = search_memory(normalized_vector)
+            print (v_call)
             conversation(v_call['matches'][0]['metadata']['text'])
             
             # Generate a response from the GPT-3 model
@@ -153,6 +146,7 @@ def main():
             print ('\n')
             print (system_name + ": " + str(response))
             print ('\n')
+            print(conversation.memory.buffer)
             
             #store the query and response in conversation_history 
             conversation_history["messages"].append(
