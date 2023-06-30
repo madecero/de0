@@ -9,7 +9,6 @@ version = 'v0.0.1'
 
 import json
 import os
-import uuid
 import openai
 import pinecone
 import spacy
@@ -81,11 +80,10 @@ conversation = ConversationChain(
     llm = llm,
     memory = ConversationSummaryMemory(llm = llm))
 
-
-def search_memory(prompt):
-    'Function to call similarity search in pinecone'
+def normalize_vector(prompt):
+    'Function to vectorize a prompt and normalize it in order to upsert to and/or query pinecone vectorstore'
     
-    #convert user input to a spaCy Doc object and vectorize it to query pinceone membory vectors
+    #convert user input to a spaCy Doc object and vectorize it to upsert to and/or query pinceone memory vectors
     doc = nlp(prompt)
     word_vectors = [token.vector for token in doc]
     averaged_vector = np.mean(word_vectors, axis = 0)
@@ -96,9 +94,17 @@ def search_memory(prompt):
     else:
         normalized_vector = averaged_vector[:dimensions]
         normalized_vector = np.ndarray.tolist(normalized_vector)
-        
+    
+    return normalized_vector
+
+def search_memory(prompt):
+    'Function to call similarity search in pinecone'
+    
+    #obtain the normalized vector representing the prompt text and query pinecone vectorstore
+    normalized_vector = normalize_vector(prompt)    
     query_response = index.query(normalized_vector, top_k = 1, include_metadata=True)
     
+    #if there is a response from pinecone, set the conversation with context. if not, initialize new conversation
     if query_response == None:
         conversation(system_message)
     else:
@@ -106,86 +112,16 @@ def search_memory(prompt):
 
 def chat(chain, query):
     'Function to have interactive chat with bot'
+    
     response = chain.run(query)
     return response
 
-# Define the main function to interact with the user
-def main():
+def upsert_to_memory(conversation_history):
+    'Function to upsert conversation to Pinecone for future similarity search'
     
-    #start memory session
-    conversation_uuid = str(uuid.uuid4())
-    conversation_history = {
-        "id": conversation_uuid,
-        "messages": []
-        }
-    
-    print (system_name + ": What can I do for you today? ")
-    print ('\n')
-    
-    # Start the conversation loop
-    while True:
-        try:
-                        
-            # Get user input
-            user_input = input(user_name + ": ")
-            
-            if user_input.lower() == "end":
-                break
-            
-            #record time we have an interaction
-            query_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            
-            #query vector store for similar past conversations and add response as context
-            search_memory(user_input)
-            
-            # Generate a response from the GPT-3 model
-            response = chat(conversation, user_input)
-            response_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            print ('\n')
-            print (system_name + ": " + str(response))
-            print ('\n')
-            print(conversation.memory.buffer)
-            
-            #store the query and response in conversation_history 
-            conversation_history["messages"].append(
-                {
-                "timestamp": query_timestamp,
-                "role": user_name,
-                "text": user_input
-                }
-                )
-            
-            conversation_history["messages"].append(
-                {
-                "timestamp": response_timestamp,
-                "role": system_name,
-                "text": str(response)
-                }
-                )
-        
-        except KeyboardInterrupt:
-            break
-        
     #tokenize the conversation_history, transform vectors to consistent dimensionality, and upsert to pinecone index
     vectors = []
-    
-    #convert conversation_summary to spaCy Doc object
-    text = conversation.memory.buffer
-    doc = nlp(text)
-        
-    #extract the word vector for each token in the Doc object
-    word_vectors = [token.vector for token in doc]
-    
-    #average the word vectors to get a single vector representation
-    averaged_vector = np.mean(word_vectors, axis = 0)
-    
-    #pad or truncate the averaged vector to dimensionality 768
-    if len(averaged_vector) < dimensions:
-        normalized_vector = np.pad(averaged_vector, (0, dimensions - len(averaged_vector)))
-        normalized_vector = np.ndarray.tolist(normalized_vector)
-    else:
-        normalized_vector = averaged_vector[:dimensions]
-        normalized_vector = np.ndarray.tolist(normalized_vector)
+    normalized_vector = normalize_vector(conversation_history)
     
     #append normalized vectors + an id to a list of dictionaries in order to upsert to pinecone
     vectors.append(
@@ -193,12 +129,45 @@ def main():
         "id": session_start,
         "values": normalized_vector,
         "metadata": {
-            "text": text
+            "text": conversation_history
             }
         }
         )
     
+    print(vectors)
     #index.upsert(vectors=vectors)
+
+# Define the main function to interact with the user
+def main():
+    
+    #have the ai start the conversation by asking the user what they need    
+    print (system_name + ": What can I do for you today? ")
+    print ('\n')
+    
+    # Start the conversation loop
+    while True:
+        try:
+            # Get user input
+            user_input = input(user_name + ": ")
+            
+            if user_input.lower() == "end":
+                break
+            
+            #query vector store for similar past conversations and add response as context
+            search_memory(user_input)
+            
+            # Generate a response from the GPT-3 model
+            response = chat(conversation, user_input)
+            print ('\n')
+            print (system_name + ": " + str(response))
+            print ('\n')
+                    
+        except KeyboardInterrupt:
+            break
+
+    #upsert new conversation history to pinecone
+    text = conversation.memory.buffer
+    upsert_to_memory(text)
 
 if __name__ == '__main__':
     main()
