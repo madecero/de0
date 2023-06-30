@@ -1,0 +1,5 @@
+{
+"open_ai_key": "YOUR-KEY-HERE",
+"pinecone_key": "YOUR-KEY-HERE", 
+"pinecone_env": "country-region-gcp"
+}
