@@ -8,6 +8,7 @@ Created on Fri Apr  7 14:40:29 2023
 version = 'v0.0.1'
 
 import json
+import os
 import openai
 import pinecone
 import spacy
@@ -15,7 +16,7 @@ import numpy as np
 from datetime import datetime
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import ConversationChain
-from langchain.chains.conversation.memory import ConversationSummaryMemory
+from langchain.chains.conversation.memory import ConversationBufferMemory
 
 print ('\n')
 print ('     1             00000   ')
@@ -29,13 +30,16 @@ print ('\n')
 
 print ('---------------------------------------------------------------------')
 
+#Change to a local directory
+os.chdir(r'C:\Users\madec\Documents\de0project\openAI')
+
 # Bueller?!
 user_name = 'Mike'
 system_name = 'de0'
 
 #set llm, index, nlp model, and initial messages
 chat_model = 'gpt-3.5-turbo'
-index_name = 'de0'
+index_name = 'de0-memory'
 nlp = spacy.load("en_core_web_lg")
 session_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 dimensions = 1024
@@ -74,7 +78,8 @@ llm = ChatOpenAI(
 
 conversation = ConversationChain(
     llm = llm,
-    memory = ConversationSummaryMemory(llm = llm))
+    memory = ConversationBufferMemory()
+    )
 
 def normalize_vector(prompt):
     'Function to vectorize a prompt and normalize it in order to upsert to and/or query pinecone vectorstore'
@@ -101,7 +106,7 @@ def search_memory(prompt):
     query_response = index.query(normalized_vector, top_k = 1, include_metadata=True)
     
     #if there is a response from pinecone, set the conversation with context. if not, initialize new conversation
-    if query_response == None:
+    if (len(query_response["matches"])) == 0:
         conversation(system_message)
     else:
         conversation(query_response['matches'][0]['metadata']['text'])
@@ -131,6 +136,7 @@ def upsert_to_memory(conversation_history):
         )
     
     index.upsert(vectors=vectors)
+    print (vectors)
 
 # Define the main function to interact with the user
 def main():
