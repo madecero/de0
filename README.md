@@ -24,8 +24,27 @@ This is the goal of de0.
 
 <hr/>
 
-## Demo 🤖
+## Demo 🖥️
 
+<h2 align="center"> Ask de0 to help me with a programming problem on July 20th, 2023 </h2>
+
+![de0capture](https://github.com/madecero/de0/assets/59320522/226c36d5-9bfe-4872-87c0-88233691b3f7)
+
+Cool. I know de0 will remember this list, so I moved on to other things that day.
+
+<h2 align="center"> A few days later, I asked de0 for birthday ideas for my wife, Haley </h2>
+
+![de0capture1](https://github.com/madecero/de0/assets/59320522/8c6e2b56-f6c9-4fa8-ae42-68c3d4d26836)
+
+de0 responds with something relevant. I know it will remember this too, so I will come back to that another time.
+
+<h2 align="center"> A week later, I want to revist my speech to text programming problem </h2>
+
+![de0capture2](https://github.com/madecero/de0/assets/59320522/d0a410e2-26e1-427e-badc-d208fd272fc0)
+
+Nice job, de0! You remembered the relevant instructions for my programming solution, and excluded irrelevant details about the birthday gift.
+
+I can handle the birthday gift. I know my wife better than you ;)
 <hr/>
 
 ## Execution ⌨️
