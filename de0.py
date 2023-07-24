@@ -9,6 +9,7 @@ version = 'v0.0.1'
 
 import json
 import os
+import sys
 import openai
 import pinecone
 import spacy
@@ -42,7 +43,7 @@ chat_model = 'gpt-3.5-turbo'
 index_name = 'de0-memory'
 nlp = spacy.load("en_core_web_lg")
 session_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-dimensions = 1024
+dimensions = 300
 temperature = 0.0
 system_message = "Your name is " + str(system_name) + " and you are " + str(user_name) + "'s personal assistant. This conversation started at " + session_start
 
@@ -106,10 +107,12 @@ def search_memory(prompt):
     query_response = index.query(normalized_vector, top_k = 1, include_metadata=True)
     
     #if there is a response from pinecone, set the conversation with context. if not, initialize new conversation
-    if (len(query_response["matches"])) == 0:
+    if (query_response["matches"][0]["score"]) < 0.85:
         conversation(system_message)
     else:
-        conversation(query_response['matches'][0]['metadata']['text'])
+        conversation(query_response["matches"][0]["metadata"]["text"])
+        
+    print (query_response)
 
 def chat(chain, query):
     'Function to have interactive chat with bot'
@@ -145,7 +148,22 @@ def main():
     print (system_name + ": What can I do for you today? ")
     print ('\n')
     
-    # Start the conversation loop
+    #initial input from user
+    user_input = input(user_name + ": ")
+    
+    if user_input.lower() == "end":
+        sys.exit()
+    
+    #query vector store for similar past conversations and add response as context
+    search_memory(user_input)
+    
+    # Generate a response from LLM
+    response = chat(conversation, user_input)
+    print ('\n')
+    print (system_name + ": " + str(response))
+    print ('\n')
+    
+    # Start the conversation loop after initial conversation started
     while True:
         try:
             # Get user input
@@ -154,10 +172,7 @@ def main():
             if user_input.lower() == "end":
                 break
             
-            #query vector store for similar past conversations and add response as context
-            search_memory(user_input)
-            
-            # Generate a response from the GPT-3 model
+            # Generate a response from LLM
             response = chat(conversation, user_input)
             print ('\n')
             print (system_name + ": " + str(response))
