@@ -40,7 +40,7 @@ You can start using de0 via your local terminal today! Just follow these instruc
 
 ### 🗝️ API Keys
 
-**OpenAI**
+**OpenAI** 🤖
 
 You must have an OpenAI developer account in order to run de0: [link](https://platform.openai.com/signup)
 
@@ -48,7 +48,11 @@ Once you have that set up, you can get your API key here: [https://platform.open
 
 ![image](https://github.com/madecero/de0/assets/59320522/4ade5c2b-8879-4c49-9f78-b2568cb7d77d)
 
-**Pinecone**
+For OpenAI API key to work, set up paid account at OpenAI API > Billing
+
+![image](https://github.com/madecero/de0/assets/59320522/db51251a-7d3b-4b45-a1f4-5f0782ea924b)
+
+**Pinecone** 💾
 
 Once you have your pinecone account, create an index.
 
@@ -91,4 +95,16 @@ Run de0.py:
 
 ```python de0.py```
 
-![image](https://github.com/madecero/de0/assets/59320522/60a19c9b-505b-4d7e-ac6e-c68e2411b486)
+
+![image](https://github.com/madecero/de0/assets/59320522/4fff141a-8cf4-48b5-9d18-aa4dabf88987)
+
+<hr/>
+
+##Disclaimer ⚠️
+
+It's highly recommended that you keep track of your API costs on [the Usage page](https://platform.openai.com/account/usage).
+    You can also set limits on how much you spend on [the Usage limits page](https://platform.openai.com/account/billing/limits).
+
+I use de0 regularly, and my cost tends to be less than $2 a month. That said, as a best practice, you should monitor your API usage costs closely.
+
+Hope you enjoy de0. Forgive my print statements on top of the program. You can remove those. I am just having fun :)
