@@ -41,10 +41,10 @@ system_name = 'de0'
 #set llm, index, nlp model, and initial messages
 chat_model = 'gpt-3.5-turbo'
 index_name = 'de0-memory'
-nlp = spacy.load("en_core_web_lg")
-session_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 dimensions = 300
 temperature = 0.0
+nlp = spacy.load("en_core_web_lg")
+session_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 system_message = "Your name is " + str(system_name) + " and you are " + str(user_name) + "'s personal assistant. This conversation started at " + session_start
 
 print ("Welcome to your personal assistant, " + system_name + ' ' + version)
