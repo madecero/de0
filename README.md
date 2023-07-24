@@ -100,7 +100,7 @@ Run de0.py:
 
 <hr/>
 
-##Disclaimer ⚠️
+## Disclaimer ⚠️
 
 It's highly recommended that you keep track of your API costs on [the Usage page](https://platform.openai.com/account/usage).
     You can also set limits on how much you spend on [the Usage limits page](https://platform.openai.com/account/billing/limits).
