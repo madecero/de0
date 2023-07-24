@@ -39,9 +39,9 @@ user_name = 'Mike'
 system_name = 'de0'
 
 #set llm, index, nlp model, and initial messages
-chat_model = 'gpt-3.5-turbo'
 index_name = 'de0-memory'
 dimensions = 300
+chat_model = 'gpt-3.5-turbo'
 temperature = 0.0
 nlp = spacy.load("en_core_web_lg")
 session_start = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
