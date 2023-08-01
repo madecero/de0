@@ -113,7 +113,7 @@ Install the required packages (must set the permissions as --user):
 
 ```pip install -r requirements.txt --user```
 
-Install the SpaCy en_core_web_lg model (replace _lg with either _sm or _md if you want to use a smaller model)
+Install the SpaCy en_core_web_lg model (replace _lg with either _sm or _md if you want to use a smaller model - this will also need to be updated in the de0.py file under the #set llm, index, nlp model, and initial messages section)
 
 ```python -m spacy download en_core_web_lg```
 
