@@ -56,6 +56,13 @@ You can start using de0 via your local terminal today! Just follow these instruc
   - Python 3.10 or later (instructions: [for Windows](https://www.tutorialspoint.com/how-to-install-python-in-windows))
   - OpenAI API access [documentation](https://platform.openai.com/docs/api-reference/introduction)
   - Pinecone API access [link](https://app.pinecone.io/)
+  - SpaCy en_core_web_lg trained pipeline [documentation](https://spacy.io/usage/models)
+
+_NOTE:_ This is the large pipeline model and is 560 MBs. You can also replace the _lg model with the _sm model (12 MBs) or the _md model (40 MBs), but the performance has not been tested with these sizes. Documentation on SpaCy english models can be found here:
+https://spacy.io/models/en
+
+Other languages can also be tokenzied using SpaCy models. See the list of options here:
+https://spacy.io/usage/models
 
 ### 🗝️ API Keys
 
@@ -105,6 +112,10 @@ Change your directory to the de0 folder:
 Install the required packages (must set the permissions as --user):
 
 ```pip install -r requirements.txt --user```
+
+Install the SpaCy en_core_web_lg model (replace _lg with either _sm or _md if you want to use a smaller model)
+
+```python -m spacy download en_core_web_lg```
 
 Now, open the ```api_keys.txt``` file in your directory and update your open api key, pincecone key, and pinecone environment accordingly (from the 🗝️ API Keys section above)
 
